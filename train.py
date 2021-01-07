@@ -61,27 +61,32 @@ SEED = 0
 Xt, Xv, yt, yv = train_test_split(
     X, y, random_state=SEED
 )  # split into train and validation set
-dt = lgb.Dataset(Xt, yt)
-dv = lgb.Dataset(Xv, yv)
+dt = lgb.Dataset(Xt, yt, free_raw_data=False)
+np.random.seed(SEED)
+sample_idx = np.random.choice(Xt.index, size=10000)
+Xs, ys = Xt.loc[sample_idx], yt.loc[sample_idx]
+ds = lgb.Dataset(Xs, ys)
+dv = lgb.Dataset(Xv, yv, free_raw_data=False)
 
 
 OBJECTIVE = "multiclass"
-METRIC = "multiclass"
+METRIC = "multi_logloss"
 MAXIMIZE = False
 EARLY_STOPPING_ROUNDS = 10
 MAX_ROUNDS = 10000
-REPORT_ROUNDS = 10
+REPORT_ROUNDS = 100
 
 params = {
     "objective": OBJECTIVE,
     "metric": METRIC,
     "verbose": -1,
     "num_classes": 4,
+    "n_jobs": 6,
 }
 
 model = lgb.train(
     params,
-    dt,
+    ds,
     valid_sets=[dt, dv],
     valid_names=["training", "valid"],
     num_boost_round=MAX_ROUNDS,
@@ -92,12 +97,12 @@ model = lgb.train(
 best_etas = {"learning_rate": [], "score": []}
 
 for _ in range(30):
-    eta = loguniform(-4, 0)
+    eta = loguniform(-2, 0)
     best_etas["learning_rate"].append(eta)
     params["learning_rate"] = eta
     model = lgb.train(
         params,
-        dt,
+        ds,
         valid_sets=[dt, dv],
         valid_names=["training", "valid"],
         num_boost_round=MAX_ROUNDS,
@@ -112,29 +117,28 @@ lowess_data = lowess(
     best_eta_df["learning_rate"],
 )
 
-# use log scale as it's easier to observe the whole graph
-sns.lineplot(x=lowess_data[:, 0], y=lowess_data[:, 1])
-plt.xscale("log")
 rounded_data = lowess_data.copy()
 rounded_data[:, 1] = rounded_data[:, 1].round(4)
 rounded_data = rounded_data[::-1]  # reverse to find first best
-
 # maximize or minimize metric
 if MAXIMIZE:
     best = np.argmax
 else:
     best = np.argmin
-good_eta = rounded_data[best(rounded_data[:, 1]), 0]
+best_eta = rounded_data[best(rounded_data[:, 1]), 0]
 
 # plot relationship between learning rate and performance, with an eta selected just before diminishing returns
-print(f"Good learning rate: {good_eta:4f}")
-plt.axvline(good_eta, color="orange")
+# use log scale as it's easier to observe the whole graph
+sns.lineplot(x=lowess_data[:, 0], y=lowess_data[:, 1])
+plt.xscale("log")
+print(f"Good learning rate: {best_eta:4f}")
+plt.axvline(best_eta, color="orange")
 plt.title("Smoothed relationship between learning rate and metric.")
 plt.xlabel("learning rate")
 plt.ylabel(METRIC)
 plt.show()
 
-params["learning_rate"] = good_eta
+params["learning_rate"] = 0.02
 
 model = lgb.train(
     params,
