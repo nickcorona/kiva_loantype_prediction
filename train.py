@@ -58,12 +58,14 @@ X = encode_dates(X, "funded_time")
 X = encode_dates(X, "date")
 
 SEED = 0
+SAMPLE_SIZE = 10000
+
 Xt, Xv, yt, yv = train_test_split(
     X, y, random_state=SEED
 )  # split into train and validation set
 dt = lgb.Dataset(Xt, yt, free_raw_data=False)
 np.random.seed(SEED)
-sample_idx = np.random.choice(Xt.index, size=10000)
+sample_idx = np.random.choice(Xt.index, size=SAMPLE_SIZE)
 Xs, ys = Xt.loc[sample_idx], yt.loc[sample_idx]
 ds = lgb.Dataset(Xs, ys)
 dv = lgb.Dataset(Xv, yv, free_raw_data=False)
