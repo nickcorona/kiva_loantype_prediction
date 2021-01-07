@@ -6,9 +6,8 @@ import seaborn as sns
 from category_encoders import OneHotEncoder, OrdinalEncoder  # sometimes needed
 from sklearn.model_selection import train_test_split
 from statsmodels.nonparametric.smoothers_lowess import lowess
-from helpers import encode_dates
 
-from helpers import loguniform
+from helpers import encode_dates, loguniform
 
 df = pd.read_csv(
     r"data\kiva_loans.csv",
@@ -58,7 +57,7 @@ X = encode_dates(X, "funded_time")
 X = encode_dates(X, "date")
 
 SEED = 0
-SAMPLE_SIZE = 10000
+SAMPLE_SIZE = 5000
 
 Xt, Xv, yt, yv = train_test_split(
     X, y, random_state=SEED
@@ -105,7 +104,7 @@ for _ in range(30):
     model = lgb.train(
         params,
         ds,
-        valid_sets=[dt, dv],
+        valid_sets=[ds, dv],
         valid_names=["training", "valid"],
         num_boost_round=MAX_ROUNDS,
         early_stopping_rounds=EARLY_STOPPING_ROUNDS,
@@ -144,8 +143,8 @@ params["learning_rate"] = best_eta
 
 model = lgb.train(
     params,
-    dt,
-    valid_sets=[dt, dv],
+    ds,
+    valid_sets=[ds, dv],
     valid_names=["training", "valid"],
     num_boost_round=MAX_ROUNDS,
     early_stopping_rounds=EARLY_STOPPING_ROUNDS,
@@ -153,7 +152,7 @@ model = lgb.train(
 )
 
 threshold = 0.75
-corr = Xt.corr(method="kendall")
+corr = Xs.corr(method="kendall")
 upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool))
 upper = upper.stack()
 high_upper = upper[(abs(upper) > threshold)]
@@ -172,12 +171,13 @@ for pair in pairs:
         Xt, Xv, yt, yv = train_test_split(
             X.drop(correlated_features, axis=1), y, random_state=SEED
         )
-        dt = lgb.Dataset(Xt, yt, silent=True)
+        Xs, ys = Xt.loc[sample_idx], yt.loc[sample_idx]
+        ds = ds = lgb.Dataset(Xs, ys, silent=True)
         dv = lgb.Dataset(Xv, yv, silent=True)
         drop_model = lgb.train(
             params,
-            dt,
-            valid_sets=[dt, dv],
+            ds,
+            valid_sets=[ds, dv],
             valid_names=["training", "valid"],
             num_boost_round=MAX_ROUNDS,
             early_stopping_rounds=EARLY_STOPPING_ROUNDS,
@@ -201,13 +201,15 @@ X = X.drop(correlated_features, axis=1)
 Xt, Xv, yt, yv = train_test_split(
     X, y, random_state=SEED
 )  # split into train and validation set
+Xs, ys = Xt.loc[sample_idx], yt.loc[sample_idx]
 dt = lgb.Dataset(Xt, yt, silent=True)
+dt = lgb.Dataset(Xs, ys, silent=True)
 dv = lgb.Dataset(Xv, yv, silent=True)
 
 model = lgb.train(
     params,
-    dt,
-    valid_sets=[dt, dv],
+    ds,
+    valid_sets=[ds, dv],
     valid_names=["training", "valid"],
     num_boost_round=MAX_ROUNDS,
     early_stopping_rounds=EARLY_STOPPING_ROUNDS,
@@ -217,7 +219,7 @@ model = lgb.train(
 sorted_features = [
     feature
     for _, feature in sorted(
-        zip(model.feature_importance(importance_type="gain"), dt.feature_name),
+        zip(model.feature_importance(importance_type="gain"), ds.feature_name),
         reverse=False,
     )
 ]
@@ -230,13 +232,14 @@ for feature in sorted_features:
     Xt, Xv, yt, yv = train_test_split(
         X.drop(unimportant_features, axis=1), y, random_state=SEED
     )
-    dt = lgb.Dataset(Xt, yt, silent=True)
+    Xs, ys = Xt.loc[sample_idx], yt.loc[sample_idx]
+    ds = lgb.Dataset(Xs, ys, silent=True)
     dv = lgb.Dataset(Xv, yv, silent=True)
 
     drop_model = lgb.train(
         params,
-        dt,
-        valid_sets=[dt, dv],
+        ds,
+        valid_sets=[ds, dv],
         valid_names=["training", "valid"],
         num_boost_round=MAX_ROUNDS,
         early_stopping_rounds=EARLY_STOPPING_ROUNDS,
@@ -258,13 +261,15 @@ X = X.drop(unimportant_features, axis=1)
 Xt, Xv, yt, yv = train_test_split(
     X, y, random_state=SEED
 )  # split into train and validation set
+Xs, ys = Xt.loc[sample_idx], yt.loc[sample_idx]
 dt = lgb.Dataset(Xt, yt, silent=True)
+ds = lgb.Dataset(Xs, ys, silent=True)
 dv = lgb.Dataset(Xv, yv, silent=True)
 
 model = lgb.train(
     params,
-    dt,
-    valid_sets=[dt, dv],
+    ds,
+    valid_sets=[ds, dv],
     valid_names=["training", "valid"],
     num_boost_round=MAX_ROUNDS,
     early_stopping_rounds=EARLY_STOPPING_ROUNDS,
@@ -274,12 +279,13 @@ model = lgb.train(
 import optuna.integration.lightgbm as lgb
 
 dt = lgb.Dataset(Xt, yt, silent=True)
+ds = lgb.Dataset(Xs, ys, silent=True)
 dv = lgb.Dataset(Xv, yv, silent=True)
 
 model = lgb.train(
     params,
-    dt,
-    valid_sets=[dt, dv],
+    ds,
+    valid_sets=[ds, dv],
     valid_names=["training", "valid"],
     num_boost_round=MAX_ROUNDS,
     verbose_eval=False,
