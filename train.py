@@ -18,6 +18,29 @@ X = df.drop(["income"], axis=1)
 obj_cols = X.select_dtypes("object").columns
 X[obj_cols] = X[obj_cols].astype("category")
 
+print((X[obj_cols].nunique() / len(df)).sort_values())
+
+
+def get_male_count(x):
+    count = 0
+    for gender in x.split(", "):
+        if gender == "male":
+            count += 1
+    return count
+
+
+def get_female_count(x):
+    count = 0
+    for gender in x.split(", "):
+        if gender == "female":
+            count += 1
+    return count
+
+
+X["male_count"] = X["borrower_genders"].apply(get_male_count)
+X["female_count"] = X["borrower_genders"].apply(get_female_count)
+
+
 SEED = 0
 Xt, Xv, yt, yv = train_test_split(
     X, y, random_state=SEED
