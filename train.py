@@ -9,11 +9,22 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 
 from helpers import loguniform
 
-df = pd.read_csv(r"data\Korea Income and Welfare.csv")
+df = pd.read_csv(
+    r"data\kiva_loans.csv",
+    parse_dates=[
+        "posted_time",
+        "disbursed_time",
+        "funded_time",
+        "date",
+    ],
+    index_col="id",
+)
 df.info()
 
-y = df["income"]
-X = df.drop(["income"], axis=1)
+y = df["repayment_interval"].replace(
+    ["irregular", "bullet", "monthly", "weekly"], [3, 0, 2, 1]
+)
+X = df.drop(["repayment_interval", "use", "tags"], axis=1)
 
 obj_cols = X.select_dtypes("object").columns
 X[obj_cols] = X[obj_cols].astype("category")
