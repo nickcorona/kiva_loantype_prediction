@@ -9,12 +9,12 @@ def loguniform(low=0, high=1, size=None, base=10):
 
 def encode_dates(df, column):
     df.copy()
-    df[column + "_year"] = df[column].apply(lambda x: x.year)
-    df[column + "_month"] = df[column].apply(lambda x: x.month)
-    df[column + "_day"] = df[column].apply(lambda x: x.day)
+    df[column + "_year"] = df[column].dt.year
+    df[column + "_month"] = df[column].dt.month
+    df[column + "_day"] = df[column].dt.day
 
-    df[column + "_hour"] = df[column].apply(lambda x: x.hour)
-    df[column + "_minute"] = df[column].apply(lambda x: x.minute)
-    df[column + "_second"] = df[column].apply(lambda x: x.second)
+    df[column + "_hour"] = df[column].dt.hour
+    df[column + "_minute"] = df[column].dt.minute
+    df[column + "_second"] = df[column].dt.second
     df = df.drop(column, axis=1)
     return df
