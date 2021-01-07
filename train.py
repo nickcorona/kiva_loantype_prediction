@@ -6,6 +6,7 @@ import seaborn as sns
 from category_encoders import OneHotEncoder, OrdinalEncoder  # sometimes needed
 from sklearn.model_selection import train_test_split
 from statsmodels.nonparametric.smoothers_lowess import lowess
+from helpers import encode_dates
 
 from helpers import loguniform
 
@@ -51,17 +52,21 @@ def get_female_count(x):
 X["male_count"] = X["borrower_genders"].apply(get_male_count)
 X["female_count"] = X["borrower_genders"].apply(get_female_count)
 
+X = encode_dates(X, "posted_time")
+X = encode_dates(X, "disbursed_time")
+X = encode_dates(X, "funded_time")
+X = encode_dates(X, "date")
 
 SEED = 0
 Xt, Xv, yt, yv = train_test_split(
     X, y, random_state=SEED
 )  # split into train and validation set
-dt = lgb.Dataset(Xt, yt, silent=True)
-dv = lgb.Dataset(Xv, yv, silent=True)
+dt = lgb.Dataset(Xt, yt)
+dv = lgb.Dataset(Xv, yv)
 
 
-OBJECTIVE = "l1"
-METRIC = "l1"
+OBJECTIVE = "multiclass"
+METRIC = "multiclass"
 MAXIMIZE = False
 EARLY_STOPPING_ROUNDS = 10
 MAX_ROUNDS = 10000
@@ -71,6 +76,7 @@ params = {
     "objective": OBJECTIVE,
     "metric": METRIC,
     "verbose": -1,
+    "num_classes": 4,
 }
 
 model = lgb.train(
