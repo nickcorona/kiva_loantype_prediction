@@ -99,7 +99,7 @@ model = lgb.train(
 best_etas = {"learning_rate": [], "score": []}
 
 for _ in range(30):
-    eta = loguniform(-2, 0)
+    eta = loguniform(-3, 0)
     best_etas["learning_rate"].append(eta)
     params["learning_rate"] = eta
     model = lgb.train(
@@ -140,7 +140,7 @@ plt.xlabel("learning rate")
 plt.ylabel(METRIC)
 plt.show()
 
-params["learning_rate"] = 0.02
+params["learning_rate"] = best_eta
 
 model = lgb.train(
     params,
