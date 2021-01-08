@@ -315,3 +315,5 @@ model = lgb.train(
 
 lgb.plot_importance(model, importance_type="gain", grid=False)
 plt.show()
+
+model.save_model('models/model')
