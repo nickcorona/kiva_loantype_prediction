@@ -1,3 +1,3 @@
-Predicting student math score.
+Predicting loan interval.
 
-Source: https://www.kaggle.com/spscientist/students-performance-in-exams
+Source: https://www.kaggle.com/gcdatkin/kiva-loan-type-prediction
